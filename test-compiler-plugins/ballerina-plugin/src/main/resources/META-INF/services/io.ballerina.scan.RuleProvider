@@ -1,1 +1,1 @@
-io.ballerina.examplestaticcodeanalyzer.CustomCodeAnalyzer
+io.ballerina.examplestaticcodeanalyzer.CustomRuleProvider
