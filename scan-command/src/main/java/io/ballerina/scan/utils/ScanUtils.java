@@ -122,9 +122,27 @@ public final class ScanUtils {
      * @param outputStream print stream
      */
     public static void printToConsole(List<Issue> issues, PrintStream outputStream) {
-        String jsonOutput = convertIssuesToJsonString(issues);
+        printToConsole(issues, outputStream, false, null);
+    }
+
+    /**
+     * Prints issues generated via static code analyzers to the console.
+     *
+     * @param issues       generated issues
+     * @param outputStream print stream
+     * @param printSarif   whether to print SARIF format instead of JSON
+     * @param project      Ballerina project (required for SARIF format)
+     */
+    public static void printToConsole(List<Issue> issues, PrintStream outputStream, boolean printSarif,
+            Project project) {
+        String output;
+        if (printSarif && project != null) {
+            output = convertIssuesToSarifString(issues, project);
+        } else {
+            output = convertIssuesToJsonString(issues);
+        }
         outputStream.println();
-        outputStream.println(jsonOutput);
+        outputStream.println(output);
     }
 
     /**
@@ -285,7 +303,8 @@ public final class ScanUtils {
     /**
      * Returns the {@link Path} of the json analysis report where generated issues
      * are saved.
-     * Also generates a SARIF format report in the same directory.
+     * Also generates a SARIF format report in the same directory for backward
+     * compatibility.
      *
      * @param issues        generated issues
      * @param project       Ballerina project
@@ -293,6 +312,22 @@ public final class ScanUtils {
      * @return path of the json analysis report where generated issues are saved
      */
     public static Path saveToDirectory(List<Issue> issues, Project project, String directoryName) {
+        return saveToDirectory(issues, project, directoryName, true);
+    }
+
+    /**
+     * Returns the {@link Path} of the json analysis report where generated issues
+     * are saved.
+     * Optionally generates a SARIF format report in the same directory.
+     *
+     * @param issues        generated issues
+     * @param project       Ballerina project
+     * @param directoryName target directory name
+     * @param generateSarif whether to generate SARIF format report
+     * @return path of the json analysis report where generated issues are saved
+     */
+    public static Path saveToDirectory(List<Issue> issues, Project project, String directoryName,
+            boolean generateSarif) {
         Target target = getTargetPath(project, directoryName);
 
         Path jsonFilePath;
@@ -303,17 +338,19 @@ public final class ScanUtils {
             String jsonOutput = convertIssuesToJsonString(issues);
             File jsonFile = new File(reportPath.resolve(RESULTS_JSON_FILE).toString());
             try (FileOutputStream fileOutputStream = new FileOutputStream(jsonFile);
-                 Writer writer = new OutputStreamWriter(fileOutputStream, StandardCharsets.UTF_8)) {
+                    Writer writer = new OutputStreamWriter(fileOutputStream, StandardCharsets.UTF_8)) {
                 writer.write(new String(jsonOutput.getBytes(StandardCharsets.UTF_8), StandardCharsets.UTF_8));
                 jsonFilePath = jsonFile.toPath();
             }
 
-            // Save SARIF report
-            String sarifOutput = convertIssuesToSarifString(issues, project);
-            File sarifFile = new File(reportPath.resolve(RESULTS_SARIF_FILE).toString());
-            try (FileOutputStream fileOutputStream = new FileOutputStream(sarifFile);
-                 Writer writer = new OutputStreamWriter(fileOutputStream, StandardCharsets.UTF_8)) {
-                writer.write(new String(sarifOutput.getBytes(StandardCharsets.UTF_8), StandardCharsets.UTF_8));
+            // Save SARIF report only if requested
+            if (generateSarif) {
+                String sarifOutput = convertIssuesToSarifString(issues, project);
+                File sarifFile = new File(reportPath.resolve(RESULTS_SARIF_FILE).toString());
+                try (FileOutputStream fileOutputStream = new FileOutputStream(sarifFile);
+                        Writer writer = new OutputStreamWriter(fileOutputStream, StandardCharsets.UTF_8)) {
+                    writer.write(new String(sarifOutput.getBytes(StandardCharsets.UTF_8), StandardCharsets.UTF_8));
+                }
             }
         } catch (IOException ex) {
             throw new IllegalStateException(ex);
@@ -421,9 +458,11 @@ public final class ScanUtils {
     }
 
     /**
-     * Returns the {@link JsonObject} representation of the static code analysis issue.
+     * Returns the {@link JsonObject} representation of the static code analysis
+     * issue.
      *
-     * @param issueImpl the {@link IssueImpl} representing the issue, to be converted to a JSON object
+     * @param issueImpl the {@link IssueImpl} representing the issue, to be
+     *                  converted to a JSON object
      * @return json object representation of the static code analysis issue
      */
     private static JsonObject getJsonIssue(IssueImpl issueImpl) {
@@ -447,7 +486,8 @@ public final class ScanUtils {
     }
 
     /**
-     * Extracts the HTML report template zip from a provided resource stream to the provided destination.
+     * Extracts the HTML report template zip from a provided resource stream to the
+     * provided destination.
      *
      * @param source resource stream that contains the zip
      * @param target destination to extract contents of the zip
@@ -479,7 +519,8 @@ public final class ScanUtils {
     }
 
     /**
-     * Returns the {@link Optional<ScanTomlFile>} representation of a local/remote Scan.toml file.
+     * Returns the {@link Optional<ScanTomlFile>} representation of a local/remote
+     * Scan.toml file.
      *
      * @param project      Ballerina project
      * @param outputStream print stream
@@ -537,7 +578,8 @@ public final class ScanUtils {
     }
 
     /**
-     * Returns the {@link Optional<ScanTomlFile>} representation a remote Scan.toml file from the provided URL.
+     * Returns the {@link Optional<ScanTomlFile>} representation a remote Scan.toml
+     * file from the provided URL.
      *
      * @param targetDir    the target directory
      * @param scanTomlPath the remote Scan.toml file path
@@ -545,7 +587,7 @@ public final class ScanUtils {
      * @return the optional in-memory representation of the remote Scan.toml file
      */
     private static Optional<ScanTomlFile> loadRemoteScanFile(Path targetDir, String scanTomlPath,
-                                                             PrintStream outputStream) {
+            PrintStream outputStream) {
         Path cachePath = targetDir.resolve(SCAN_FILE);
 
         if (Files.exists(cachePath)) {
@@ -566,7 +608,8 @@ public final class ScanUtils {
     }
 
     /**
-     * Returns the {@link Optional<ScanTomlFile>} representation of the Scan.toml file.
+     * Returns the {@link Optional<ScanTomlFile>} representation of the Scan.toml
+     * file.
      *
      * @param targetDir        the target directory
      * @param scanTomlFilePath the local Scan.toml file path
@@ -574,7 +617,7 @@ public final class ScanUtils {
      * @return the optional in-memory representation of the Scan.toml file
      */
     private static Optional<ScanTomlFile> loadScanFile(Path targetDir, Path scanTomlFilePath,
-                                                       PrintStream outputStream) {
+            PrintStream outputStream) {
         Toml scanTomlDocumentContent;
         try {
             scanTomlDocumentContent = Toml.read(scanTomlFilePath);
@@ -598,7 +641,8 @@ public final class ScanUtils {
     }
 
     /**
-     * Loads an analyzer to the {@link ScanTomlFile} representation of the Scan.toml file.
+     * Loads an analyzer to the {@link ScanTomlFile} representation of the Scan.toml
+     * file.
      *
      * @param scanTomlFile the in-memory representation of the Scan.toml file
      */
@@ -628,15 +672,17 @@ public final class ScanUtils {
     }
 
     /**
-     * Returns the boolean value indicating whether the scan process should be continued.
+     * Returns the boolean value indicating whether the scan process should be
+     * continued.
      *
      * @param scanTomlFile the in-memory representation of the Scan.toml file
      * @param targetDir    the target directory
      * @param outputStream the print stream
-     * @return the boolean value indicating whether the scan process should be continued
+     * @return the boolean value indicating whether the scan process should be
+     *         continued
      */
     private static boolean loadPlatform(Toml platformTable, ScanTomlFile scanTomlFile, Path targetDir,
-                                        PrintStream outputStream) {
+            PrintStream outputStream) {
         Map<String, Object> properties = platformTable.toMap();
         Object platformName = properties.remove(PLATFORM_NAME);
         Optional<String> name = (platformName instanceof String) ? Optional.of(platformName.toString())
@@ -649,7 +695,8 @@ public final class ScanUtils {
             return true;
         }
 
-        // Download remote JAR if the path is a URL and set the path to the downloaded JAR
+        // Download remote JAR if the path is a URL and set the path to the downloaded
+        // JAR
         if (!(new File(path.get()).exists())) {
             try {
                 URL url = new URL(path.get());
@@ -703,7 +750,7 @@ public final class ScanUtils {
      * @return the optional path of the downloaded remote JAR file
      */
     private static Optional<String> loadRemoteJAR(Path targetDir, String fileName, URL remoteJarFile,
-                                                  PrintStream outputStream) {
+            PrintStream outputStream) {
         String platformJarFileName = fileName + JAR_PREDICATE;
         Path cachedJarPath = targetDir.resolve(platformJarFileName);
         if (Files.exists(cachedJarPath)) {
@@ -744,8 +791,7 @@ public final class ScanUtils {
         outputStream.printf("\t%s--%s--%s%n",
                 "-".repeat(maxRuleIDLength + 1),
                 "-".repeat(maxSeverityLength + 1),
-                "-".repeat(maxDescriptionLength + 1)
-        );
+                "-".repeat(maxDescriptionLength + 1));
 
         sortRules(rules);
         for (Rule rule : rules) {
@@ -756,13 +802,16 @@ public final class ScanUtils {
 
     /**
      * <p>
-     * Sorts a list of rules based on their priorities. The priorities are determined by the rule's id and a
+     * Sorts a list of rules based on their priorities. The priorities are
+     * determined by the rule's id and a
      * predefined list of priorities. It achieves this with the following steps:
      * </p>
      * <ol>
-     * <li>Get the priority of each rule by comparing the rule's id with the predefined list of priorities.</li>
+     * <li>Get the priority of each rule by comparing the rule's id with the
+     * predefined list of priorities.</li>
      * <li>Sort the rules based on their priorities.</li>
-     * <li>If both rules have the same priority, the one with an exact match in the priority list comes first</li>
+     * <li>If both rules have the same priority, the one with an exact match in the
+     * priority list comes first</li>
      * <li>Otherwise, they are sorted based on the fully qualified rule id.</li>
      * </ol>
      *
@@ -793,11 +842,13 @@ public final class ScanUtils {
     }
 
     /**
-     * Returns the priority of a rule as a pair of the priority index and whether the rule is a direct match.
+     * Returns the priority of a rule as a pair of the priority index and whether
+     * the rule is a direct match.
      *
      * @param ruleId     the rule id
      * @param priorities the list of priorities
-     * @return the priority of the rule as a pair of the priority index and whether the rule is a direct match.
+     * @return the priority of the rule as a pair of the priority index and whether
+     *         the rule is a direct match.
      */
     private static AbstractMap.SimpleEntry<Integer, Boolean> getPriority(String ruleId, List<String> priorities) {
         for (int i = 0; i < priorities.size(); i++) {

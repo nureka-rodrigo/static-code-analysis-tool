@@ -62,20 +62,19 @@ import static io.ballerina.scan.internal.ScanToolConstants.SCAN_COMMAND;
  * Represents the "bal scan" command.
  *
  * @since 0.1.0
- * */
+ */
 @CommandLine.Command(name = SCAN_COMMAND, description = "Perform static code analysis for Ballerina packages")
 public class ScanCmd implements BLauncherCmd {
     private final PrintStream outputStream;
 
-    @CommandLine.Parameters (arity = "0..1")
+    @CommandLine.Parameters(arity = "0..1")
     private final Path projectPath;
 
     @CommandLine.Option(names = {"--help", "-h", "?"}, hidden = true)
     private boolean helpFlag;
 
     @CommandLine.Option(names = "--platform-triggered",
-            description = "Specify whether the scan command is triggered from an external analysis platform tool",
-            hidden = true)
+            description = "Specify whether the scan command is triggered from an external analysis platform tool", hidden = true)
     private boolean platformTriggered;
 
     @CommandLine.Option(names = "--target-dir", description = "Target directory path")
@@ -84,8 +83,10 @@ public class ScanCmd implements BLauncherCmd {
     @CommandLine.Option(names = "--scan-report", description = "Enable HTML scan report generation")
     private boolean scanReport;
 
-    @CommandLine.Option(names = "--list-rules",
-            description = "List the rules available in the Ballerina scan tool")
+    @CommandLine.Option(names = "--sarif", description = "Enable SARIF format report generation")
+    private boolean sarif;
+
+    @CommandLine.Option(names = "--list-rules", description = "List the rules available in the Ballerina scan tool")
     private boolean listRules;
 
     @CommandLine.Option(names = "--include-rules",
@@ -121,17 +122,18 @@ public class ScanCmd implements BLauncherCmd {
             boolean platformTriggered,
             String targetDir,
             boolean scanReport,
+            boolean sarif,
             boolean listRules,
             List<Rule> includeRules,
             List<Rule> excludeRules,
-            List<String> platforms
-    ) {
+            List<String> platforms) {
         this.projectPath = projectPath;
         this.outputStream = outputStream;
         this.helpFlag = helpFlag;
         this.platformTriggered = platformTriggered;
         this.targetDir = targetDir;
         this.scanReport = scanReport;
+        this.sarif = sarif;
         this.listRules = listRules;
         this.includeRules.addAll(includeRules.stream().map(Rule::id).toList());
         this.excludeRules.addAll(excludeRules.stream().map(Rule::id).toList());
@@ -179,7 +181,7 @@ public class ScanCmd implements BLauncherCmd {
 
         Optional<ScanTomlFile> scanTomlFile = ScanUtils.loadScanTomlConfigurations(project.get(), outputStream);
         if (scanTomlFile.isEmpty()) {
-           return;
+            return;
         }
 
         ProjectAnalyzer projectAnalyzer = getProjectAnalyzer(project.get(), scanTomlFile.get());
@@ -208,7 +210,7 @@ public class ScanCmd implements BLauncherCmd {
             platform.arguments().forEach((key, value) -> platformArgs.put(key, value.toString()));
             platformContexts.put(platformName, new PlatformPluginContextImpl(platformArgs, platformTriggered));
             if (!platformTriggered || platforms.size() != 1 || !platforms.contains(platformName)) {
-                  platforms.add(platformName);
+                platforms.add(platformName);
             }
         });
 
@@ -244,14 +246,19 @@ public class ScanCmd implements BLauncherCmd {
         }
 
         if (platforms.isEmpty() && !platformTriggered) {
-            ScanUtils.printToConsole(issues, outputStream);
+            ScanUtils.printToConsole(issues, outputStream, sarif, project.get());
             if (project.get().kind().equals(ProjectKind.BUILD_PROJECT)) {
-                Path reportPath = ScanUtils.saveToDirectory(issues, project.get(), targetDir);
-                Path sarifReportPath = reportPath.getParent().resolve("scan_results.sarif");
+                Path reportPath = ScanUtils.saveToDirectory(issues, project.get(), targetDir, sarif);
                 outputStream.println();
-                outputStream.println("View scan results at:");
-                outputStream.println("\t" + reportPath.toUri());
-                outputStream.println("\t" + sarifReportPath.toUri() + System.lineSeparator());
+                if (sarif) {
+                    Path sarifReportPath = reportPath.getParent().resolve("scan_results.sarif");
+                    outputStream.println("View scan results at:");
+                    outputStream.println("\t" + sarifReportPath.toUri());
+                } else {
+                    outputStream.println("View scan results at:");
+                    outputStream.println("\t" + reportPath.toUri());
+                }
+                outputStream.println();
                 if (scanReport) {
                     Path scanReportPath = ScanUtils.generateScanReport(issues, project.get(), targetDir);
                     outputStream.println();
@@ -291,8 +298,7 @@ public class ScanCmd implements BLauncherCmd {
         if (inputStream != null) {
             try (
                     InputStreamReader inputStreamReader = new InputStreamReader(inputStream, StandardCharsets.UTF_8);
-                    BufferedReader br = new BufferedReader(inputStreamReader)
-            ) {
+                    BufferedReader br = new BufferedReader(inputStreamReader)) {
                 String content = br.readLine();
                 builder.append(content);
                 while ((content = br.readLine()) != null) {

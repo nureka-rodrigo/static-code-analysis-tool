@@ -49,11 +49,11 @@ public class TestScanCmd extends ScanCmd {
                 options.platformTriggered(),
                 options.targetDir(),
                 options.scanReport(),
+                options.sarif(),
                 options.listRules(),
                 options.includeRules(),
                 options.excludeRules(),
-                options.platforms()
-        );
+                options.platforms());
         this.project = options.project();
     }
 
@@ -66,10 +66,10 @@ public class TestScanCmd extends ScanCmd {
                 null,
                 false,
                 false,
+                false,
                 Collections.emptyList(),
                 Collections.emptyList(),
-                Collections.emptyList()
-        );
+                Collections.emptyList());
         if (projectPath.toFile().isDirectory()) {
             project = BuildProject.load(getEnvironmentBuilder(distributionPath), projectPath);
         } else {
