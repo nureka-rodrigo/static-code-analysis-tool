@@ -70,11 +70,12 @@ public class ScanCmd implements BLauncherCmd {
     @CommandLine.Parameters(arity = "0..1")
     private final Path projectPath;
 
-    @CommandLine.Option(names = {"--help", "-h", "?"}, hidden = true)
+    @CommandLine.Option(names = { "--help", "-h", "?" }, hidden = true)
     private boolean helpFlag;
 
     @CommandLine.Option(names = "--platform-triggered",
-            description = "Specify whether the scan command is triggered from an external analysis platform tool", hidden = true)
+            description = "Specify whether the scan command is triggered from an external analysis platform tool",
+            hidden = true)
     private boolean platformTriggered;
 
     @CommandLine.Option(names = "--target-dir", description = "Target directory path")
@@ -89,18 +90,15 @@ public class ScanCmd implements BLauncherCmd {
     @CommandLine.Option(names = "--list-rules", description = "List the rules available in the Ballerina scan tool")
     private boolean listRules;
 
-    @CommandLine.Option(names = "--include-rules",
-            converter = StringToListConverter.class,
+    @CommandLine.Option(names = "--include-rules", converter = StringToListConverter.class,
             description = "Specify the comma separated list of rules to include specific analysis issues")
     private List<String> includeRules = new ArrayList<>();
 
-    @CommandLine.Option(names = "--exclude-rules",
-            converter = StringToListConverter.class,
+    @CommandLine.Option(names = "--exclude-rules", converter = StringToListConverter.class,
             description = "Specify the comma separated list of rules to exclude specific analysis issues")
     private List<String> excludeRules = new ArrayList<>();
 
-    @CommandLine.Option(names = "--platforms",
-            converter = StringToListConverter.class,
+    @CommandLine.Option(names = "--platforms", converter = StringToListConverter.class,
             description = "Specify the comma separated list of static code analysis platforms to report issues")
     private List<String> platforms = new ArrayList<>();
 
@@ -248,16 +246,15 @@ public class ScanCmd implements BLauncherCmd {
         if (platforms.isEmpty() && !platformTriggered) {
             ScanUtils.printToConsole(issues, outputStream, sarif, project.get());
             if (project.get().kind().equals(ProjectKind.BUILD_PROJECT)) {
-                Path reportPath = ScanUtils.saveToDirectory(issues, project.get(), targetDir, sarif);
-                outputStream.println();
+                Path reportPath;
                 if (sarif) {
-                    Path sarifReportPath = reportPath.getParent().resolve("scan_results.sarif");
-                    outputStream.println("View scan results at:");
-                    outputStream.println("\t" + sarifReportPath.toUri());
+                    reportPath = ScanUtils.saveSarifToDirectory(issues, project.get(), targetDir);
                 } else {
-                    outputStream.println("View scan results at:");
-                    outputStream.println("\t" + reportPath.toUri());
+                    reportPath = ScanUtils.saveToDirectory(issues, project.get(), targetDir);
                 }
+                outputStream.println();
+                outputStream.println("View scan results at:");
+                outputStream.println("\t" + reportPath.toUri());
                 outputStream.println();
                 if (scanReport) {
                     Path scanReportPath = ScanUtils.generateScanReport(issues, project.get(), targetDir);

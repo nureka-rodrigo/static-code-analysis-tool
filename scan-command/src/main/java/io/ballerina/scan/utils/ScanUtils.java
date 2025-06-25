@@ -249,7 +249,7 @@ public final class ScanUtils {
             JsonObject region = new JsonObject();
             LineRange lineRange = issueImpl.location().lineRange();
             region.addProperty("startLine", lineRange.startLine().line());
-            region.addProperty("startColumn", lineRange.startLine().offset() + 1); // SARIF uses 1-based columns
+            region.addProperty("startColumn", lineRange.startLine().offset() + 1);
             region.addProperty("endLine", lineRange.endLine().line());
             region.addProperty("endColumn", lineRange.endLine().offset() + 1);
             physicalLocation.add("region", region);
@@ -303,8 +303,7 @@ public final class ScanUtils {
     /**
      * Returns the {@link Path} of the json analysis report where generated issues
      * are saved.
-     * Also generates a SARIF format report in the same directory for backward
-     * compatibility.
+     * Optionally generates a SARIF format report in the same directory.
      *
      * @param issues        generated issues
      * @param project       Ballerina project
@@ -312,22 +311,6 @@ public final class ScanUtils {
      * @return path of the json analysis report where generated issues are saved
      */
     public static Path saveToDirectory(List<Issue> issues, Project project, String directoryName) {
-        return saveToDirectory(issues, project, directoryName, true);
-    }
-
-    /**
-     * Returns the {@link Path} of the json analysis report where generated issues
-     * are saved.
-     * Optionally generates a SARIF format report in the same directory.
-     *
-     * @param issues        generated issues
-     * @param project       Ballerina project
-     * @param directoryName target directory name
-     * @param generateSarif whether to generate SARIF format report
-     * @return path of the json analysis report where generated issues are saved
-     */
-    public static Path saveToDirectory(List<Issue> issues, Project project, String directoryName,
-            boolean generateSarif) {
         Target target = getTargetPath(project, directoryName);
 
         Path jsonFilePath;
@@ -342,20 +325,34 @@ public final class ScanUtils {
                 writer.write(new String(jsonOutput.getBytes(StandardCharsets.UTF_8), StandardCharsets.UTF_8));
                 jsonFilePath = jsonFile.toPath();
             }
-
-            // Save SARIF report only if requested
-            if (generateSarif) {
-                String sarifOutput = convertIssuesToSarifString(issues, project);
-                File sarifFile = new File(reportPath.resolve(RESULTS_SARIF_FILE).toString());
-                try (FileOutputStream fileOutputStream = new FileOutputStream(sarifFile);
-                        Writer writer = new OutputStreamWriter(fileOutputStream, StandardCharsets.UTF_8)) {
-                    writer.write(new String(sarifOutput.getBytes(StandardCharsets.UTF_8), StandardCharsets.UTF_8));
-                }
-            }
         } catch (IOException ex) {
             throw new IllegalStateException(ex);
         }
         return jsonFilePath;
+    }
+
+    /**
+     * Saves only the SARIF analysis report to the target directory.
+     *
+     * @param issues        generated issues
+     * @param project       Ballerina project
+     * @param directoryName target directory name
+     * @return path of the SARIF analysis report
+     */
+    public static Path saveSarifToDirectory(List<Issue> issues, Project project, String directoryName) {
+        Target target = getTargetPath(project, directoryName);
+        try {
+            Path reportPath = target.getReportPath();
+            String sarifOutput = convertIssuesToSarifString(issues, project);
+            File sarifFile = new File(reportPath.resolve(RESULTS_SARIF_FILE).toString());
+            try (FileOutputStream fos = new FileOutputStream(sarifFile);
+                 Writer writer = new OutputStreamWriter(fos, StandardCharsets.UTF_8)) {
+                writer.write(new String(sarifOutput.getBytes(StandardCharsets.UTF_8), StandardCharsets.UTF_8));
+            }
+            return sarifFile.toPath();
+        } catch (IOException ex) {
+            throw new IllegalStateException(ex);
+        }
     }
 
     /**
