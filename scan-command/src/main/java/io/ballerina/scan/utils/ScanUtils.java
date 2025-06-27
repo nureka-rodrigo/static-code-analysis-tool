@@ -105,6 +105,11 @@ import static io.ballerina.scan.utils.Constants.SCAN_REPORT_PROJECT_NAME;
 import static io.ballerina.scan.utils.Constants.SCAN_REPORT_SCANNED_FILES;
 import static io.ballerina.scan.utils.Constants.SCAN_REPORT_ZIP_FILE;
 import static io.ballerina.scan.utils.Constants.SCAN_TABLE;
+import static io.ballerina.scan.utils.Constants.SARIF_VERSION;
+import static io.ballerina.scan.utils.Constants.SARIF_SCHEMA;
+import static io.ballerina.scan.utils.Constants.SARIF_TOOL_NAME;
+import static io.ballerina.scan.utils.Constants.SARIF_TOOL_VERSION;
+import static io.ballerina.scan.utils.Constants.SARIF_INFORMATION_URI;
 
 /**
  * {@code ScanUtils} contains all the utility functions used by the scan tool.
@@ -170,9 +175,8 @@ public final class ScanUtils {
 
         // Create SARIF root object
         JsonObject sarif = new JsonObject();
-        sarif.addProperty("version", "2.1.0");
-        sarif.addProperty("$schema",
-                "https://schemastore.azurewebsites.net/schemas/json/sarif-2.1.0-rtm.4.json");
+        sarif.addProperty("version", SARIF_VERSION);
+        sarif.addProperty("$schema", SARIF_SCHEMA);
 
         // Create runs array
         JsonArray runs = new JsonArray();
@@ -181,9 +185,9 @@ public final class ScanUtils {
         // Create tool information
         JsonObject tool = new JsonObject();
         JsonObject driver = new JsonObject();
-        driver.addProperty("name", "Ballerina Static Code Analysis Tool");
-        driver.addProperty("version", "1.0.0");
-        driver.addProperty("informationUri", "https://ballerina.io/");
+        driver.addProperty("name", SARIF_TOOL_NAME);
+        driver.addProperty("version", SARIF_TOOL_VERSION);
+        driver.addProperty("informationUri", SARIF_INFORMATION_URI);
 
         // Create rules array for the tool
         JsonArray rules = new JsonArray();
