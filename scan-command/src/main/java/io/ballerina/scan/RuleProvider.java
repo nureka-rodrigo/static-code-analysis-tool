@@ -23,7 +23,7 @@ package io.ballerina.scan;
  * This interface should be implemented by classes that extend CodeAnalyzer
  * and want to provide rules through the service loading mechanism.
  *
- * @since 0.10.0
+ * @since 0.12.0
  */
 public interface RuleProvider {
     /**

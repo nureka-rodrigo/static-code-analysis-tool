@@ -23,6 +23,11 @@ import io.ballerina.scan.RuleProvider;
 
 import java.util.List;
 
+/**
+ * Represents a custom rule provider for static code analysis.
+ *
+ * @since 0.12.0
+ */
 public class CustomRuleProvider implements RuleProvider {
     /**
      * Returns all Rule instances provided by this analyzer.

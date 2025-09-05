@@ -7,6 +7,11 @@ import static io.ballerina.scan.RuleKind.BUG;
 import static io.ballerina.scan.RuleKind.CODE_SMELL;
 import static io.ballerina.scan.RuleKind.VULNERABILITY;
 
+/**
+ * Represents a custom rule for static code analysis.
+ *
+ * @since 0.12.0
+ */
 public enum CustomRule implements Rule {
     RULE_1(1, "rule 1", CODE_SMELL),
     RULE_2(2, "rule 2", BUG),
