@@ -57,6 +57,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.ServiceLoader;
 
+import static io.ballerina.scan.internal.ScanToolConstants.RUNNING_SCANS;
 import static io.ballerina.scan.internal.ScanToolConstants.SCAN_COMMAND;
 
 /**
@@ -186,7 +187,7 @@ public class ScanCmd implements BLauncherCmd {
         }
 
         outputStream.println();
-        outputStream.println("Running Scans");
+        outputStream.println(RUNNING_SCANS);
 
         ProjectAnalyzer projectAnalyzer = getProjectAnalyzer(project.get(), scanTomlFile.get());
         List<Rule> coreRules = CoreRule.rules();
